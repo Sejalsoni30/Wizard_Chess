@@ -1,5 +1,8 @@
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { COLOR_PALETTE } from '../config/constants';
+import cathedralAudio from '../audio/CathedralAudio';
+import eventBus from '../core/EventBus';
 
 export class CathedralEnvironment {
   public group: THREE.Group;
@@ -14,6 +17,12 @@ export class CathedralEnvironment {
   private emberPositions: Float32Array | null = null;
   private emberVelocities: Float32Array | null = null;
   private emberCount = 120;
+
+  // Reactive Weather & Lightning
+  private lightningLight: THREE.DirectionalLight | null = null;
+  private roseMat: THREE.MeshStandardMaterial | null = null;
+  private hemiLight: THREE.HemisphereLight | null = null;
+  private isLightningActive = false;
 
   constructor(scene: THREE.Scene) {
     this.group = new THREE.Group();
@@ -30,6 +39,21 @@ export class CathedralEnvironment {
     this.buildRoseWindow();
     this.buildFireBraziers();
     this.buildEmberParticles();
+
+    this.initWeatherEvents();
+  }
+
+  private initWeatherEvents(): void {
+    eventBus.on('TURN_CHANGED', ({ isCheck, isCheckmate }) => {
+      if (isCheck || isCheckmate) {
+        // Tense moment: Flash thunder & lightning!
+        this.triggerLightning(isCheckmate ? 1.5 : 1.0);
+      }
+    });
+
+    eventBus.on('TRIGGER_LIGHTNING', (intensity) => {
+      this.triggerLightning(intensity || 1.0);
+    });
   }
 
   private setupLighting(scene: THREE.Scene): void {
@@ -38,8 +62,8 @@ export class CathedralEnvironment {
     this.group.add(ambient);
 
     // 2. Hemispheric Sky/Ground Contrast
-    const hemi = new THREE.HemisphereLight(0x384b66, 0x10121a, 0.7);
-    this.group.add(hemi);
+    this.hemiLight = new THREE.HemisphereLight(0x384b66, 0x10121a, 0.7);
+    this.group.add(this.hemiLight);
 
     // 3. Moonlight Directional Shadow Caster
     const moonlight = new THREE.DirectionalLight(COLOR_PALETTE.moonlight, 2.4);
@@ -61,6 +85,13 @@ export class CathedralEnvironment {
     const fillLight = new THREE.DirectionalLight(0x4338ca, 0.6);
     fillLight.position.set(-18, 20, -18);
     this.group.add(fillLight);
+
+    // Dedicated Lightning Flash pointing through Rose Window
+    this.lightningLight = new THREE.DirectionalLight(0xdbeafe, 0);
+    this.lightningLight.position.set(0, 22, -32);
+    this.lightningLight.target.position.set(0, 0, 0);
+    this.group.add(this.lightningLight);
+    this.group.add(this.lightningLight.target);
   }
 
   private buildCathedralFloor(): void {
@@ -246,6 +277,7 @@ export class CathedralEnvironment {
       roughness: 0.3,
       metalness: 0.1
     });
+    this.roseMat = roseMat;
 
     const roseMesh = new THREE.Mesh(roseGeo, roseMat);
     roseMesh.position.set(0, 18, -26);
@@ -437,5 +469,66 @@ export class CathedralEnvironment {
 
       this.emberPoints.geometry.attributes.position.needsUpdate = true;
     }
+  }
+
+  public triggerLightning(intensity: number = 1.0): void {
+    if (this.isLightningActive) return;
+    this.isLightningActive = true;
+
+    // Trigger thunder sound
+    cathedralAudio.playThunder();
+
+    // Trigger subtle kinetic camera shake for thunder rumble
+    eventBus.emit('CAMERA_SHAKE_TRIGGERED', {
+      intensity: 0.22 * intensity,
+      duration: 1.2
+    });
+
+    const origHemi = 0.7;
+    const origRose = 0.55;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (this.lightningLight) this.lightningLight.intensity = 0;
+        if (this.hemiLight) this.hemiLight.intensity = origHemi;
+        if (this.roseMat) this.roseMat.emissiveIntensity = origRose;
+        this.isLightningActive = false;
+      }
+    });
+
+    // Strobe flash 1 (initial lightning branch)
+    tl.to({}, { duration: 0.04, onStart: () => {
+      if (this.lightningLight) this.lightningLight.intensity = 9.0 * intensity;
+      if (this.hemiLight) this.hemiLight.intensity = 2.4 * intensity;
+      if (this.roseMat) this.roseMat.emissiveIntensity = 3.5 * intensity;
+    }});
+    tl.to({}, { duration: 0.05, onStart: () => {
+      if (this.lightningLight) this.lightningLight.intensity = 0.8;
+      if (this.hemiLight) this.hemiLight.intensity = origHemi;
+      if (this.roseMat) this.roseMat.emissiveIntensity = 1.0;
+    }});
+
+    // Main bolt burst flash 2 (massive illumination through Rose Window)
+    tl.to({}, { duration: 0.14, onStart: () => {
+      if (this.lightningLight) this.lightningLight.intensity = 20.0 * intensity;
+      if (this.hemiLight) this.hemiLight.intensity = 4.2 * intensity;
+      if (this.roseMat) this.roseMat.emissiveIntensity = 6.5 * intensity;
+    }});
+
+    // Rolling afterglow fade
+    tl.to({}, {
+      duration: 0.55,
+      onStart: () => {
+        if (this.lightningLight) {
+          gsap.to(this.lightningLight, { intensity: 0, duration: 0.55, ease: 'power2.out' });
+        }
+        if (this.hemiLight) {
+          gsap.to(this.hemiLight, { intensity: origHemi, duration: 0.55, ease: 'power2.out' });
+        }
+        if (this.roseMat) {
+          gsap.to(this.roseMat, { emissiveIntensity: origRose, duration: 0.55, ease: 'power2.out' });
+        }
+      }
+    });
   }
 }

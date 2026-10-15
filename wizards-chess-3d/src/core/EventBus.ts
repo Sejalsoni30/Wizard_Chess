@@ -1,4 +1,4 @@
-import { CameraPreset } from '../config/constants';
+import * as THREE from 'three';
 
 export interface PieceInfo {
   type: 'p' | 'r' | 'n' | 'b' | 'q' | 'k';
@@ -57,9 +57,42 @@ export type EventMap = {
   'DEMO_SHATTER_REQUESTED': void;
   'MODE_CHANGED': 'AI' | 'PVP';
   'AUDIO_TOGGLE_REQUESTED': void;
-  'AUDIO_STATE_CHANGED': boolean; // isMuted
+  'AUDIO_STATE_CHANGED': boolean;
   'CAMERA_SHAKE_TRIGGERED': CameraShakePayload;
   'PIECE_SHATTERED': ShatterPayload;
+
+  // Voice Commands
+  'VOICE_TOGGLE_REQUESTED': void;
+  'VOICE_STATUS_CHANGED': any;
+
+  // Reactive Weather & Lightning
+  'TRIGGER_LIGHTNING': number;
+
+  // Cinematic Action Cam
+  'CINEMATIC_ACTION_CAM_TRIGGERED': THREE.Vector3;
+
+  // 3D Crystal Hourglasses
+  'TIME_CONTROL_CHANGED': 'UNLIMITED' | 'BLITZ' | 'RAPID';
+  'TIME_FORFEIT': { loser: 'w' | 'b'; winner: string };
+
+  // Iconic Lore Puzzles
+  'PUZZLE_SELECTED': string;
+  'PUZZLE_STATE_CHANGED': any;
+
+  // Arcane Mode
+  'ARCANE_MODE_TOGGLED': boolean;
+  'ARCANE_STATE_CHANGED': any;
+  'SPELL_CAST_REQUESTED': { spell: any; target?: string };
+  'SPELL_FEEDBACK': { success: boolean; message: string };
+  'PIECE_FROZEN': { square: string };
+  'PIECE_UNFROZEN': string;
+  'PIECE_REVIVED': { pieceType: string; color: 'w' | 'b'; square: string };
+
+  // 1-Click P2P Multiplayer
+  'P2P_STATUS_CHANGED': any;
+
+  // Living Piece Blunder Detection
+  'BLUNDER_DETECTED': { square: string; isBlunder: boolean };
 };
 
 type EventKey = keyof EventMap;

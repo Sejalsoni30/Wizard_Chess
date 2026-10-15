@@ -2,20 +2,28 @@ import * as THREE from 'three';
 import { SceneManager } from './scene/SceneManager';
 import { CathedralEnvironment } from './scene/CathedralEnvironment';
 import { BoardGrid } from './scene/BoardGrid';
+import { BattlefieldScars } from './scene/BattlefieldScars';
+import { CrystalHourglassManager } from './scene/CrystalHourglass';
 import { ShatterPhysicsEngine } from './animations/ShatterPhysicsEngine';
 import { PieceEntity } from './entities/PieceEntity';
 import { CombatChoreographer } from './animations/CombatChoreographer';
 import { CathedralAudio } from './audio/CathedralAudio';
 import { HUDController } from './ui/HUDController';
-import eventBus, { MoveEventPayload } from './core/EventBus';
+import eventBus, { MoveEventPayload, TurnChangedPayload } from './core/EventBus';
 import gameState from './core/GameStateManager';
 import aiController from './core/AIController';
+import voiceCommander from './core/VoiceCommander';
+import puzzleManager from './core/PuzzleManager';
+import arcaneSpellEngine from './core/ArcaneSpellEngine';
+import p2pNetwork from './core/P2PNetwork';
 import { FILES, RANKS, ChessSquare } from './config/constants';
 
 class WizardsChessApp {
   private sceneManager: SceneManager;
   private cathedralEnv: CathedralEnvironment;
   private boardGrid: BoardGrid;
+  private scars: BattlefieldScars;
+  private hourglasses: CrystalHourglassManager;
   private shatterEngine: ShatterPhysicsEngine;
   private choreographer: CombatChoreographer;
   private audio: CathedralAudio;
@@ -26,10 +34,10 @@ class WizardsChessApp {
   private pieceGroup: THREE.Group;
 
   constructor() {
-    // 1. Scene & Render Pipeline
+    // 1. Scene & Render Pipeline with HDR Post-Processing
     this.sceneManager = new SceneManager('canvas-container');
 
-    // 2. Gothic Cathedral Environment
+    // 2. Gothic Cathedral Environment & Weather
     this.cathedralEnv = new CathedralEnvironment(this.sceneManager.scene);
 
     // 3. Board Grid & Raycasting Interaction
@@ -39,25 +47,31 @@ class WizardsChessApp {
       this.sceneManager.renderer.domElement
     );
 
-    // 4. Shatter Physics Engine
+    // 4. Battlefield Scars & Permanent Rubble
+    this.scars = new BattlefieldScars(this.sceneManager.scene);
+
+    // 5. 3D Crystal Hourglasses for Blitz & Rapid Timers
+    this.hourglasses = new CrystalHourglassManager(this.sceneManager.scene);
+
+    // 6. Shatter Physics Engine
     this.shatterEngine = new ShatterPhysicsEngine(this.sceneManager.scene);
 
-    // 5. Piece Group
+    // 7. Piece Group
     this.pieceGroup = new THREE.Group();
     this.sceneManager.scene.add(this.pieceGroup);
 
-    // 6. Animation Choreographer & Audio Synthesizer
-    this.choreographer = new CombatChoreographer();
+    // 8. Animation Choreographer & Audio Synthesizer
+    this.choreographer = new CombatChoreographer(this.sceneManager.scene);
     this.audio = new CathedralAudio();
 
-    // 7. MD3 HUD Controller
+    // 9. MD3 HUD Controller
     this.hud = new HUDController();
 
-    // 8. Setup Game Events & Initial Position
+    // 10. Setup Game Events & Initial Position
     this.initGameEvents();
     this.spawnInitialBoard();
 
-    // 9. Register Render Loop Subsystems
+    // 11. Register Render Loop Subsystems
     this.sceneManager.registerUpdate(this.onFrameUpdate.bind(this));
     this.sceneManager.start();
   }
@@ -78,6 +92,55 @@ class WizardsChessApp {
     // Demo Shatter Showcase Event
     eventBus.on('DEMO_SHATTER_REQUESTED', () => {
       this.triggerDemoShatterShowcase();
+    });
+
+    // Cinematic Action Cam Event
+    eventBus.on('CINEMATIC_ACTION_CAM_TRIGGERED', (targetPos: THREE.Vector3) => {
+      this.sceneManager.triggerActionCam(targetPos);
+    });
+
+    // Living Piece Reactions: Blunder Tremble
+    eventBus.on('BLUNDER_DETECTED', ({ square, isBlunder }) => {
+      const piece = this.pieceMap.get(square);
+      if (piece) {
+        piece.setTremble(isBlunder);
+      }
+    });
+
+    // Living Piece Reactions: King Crimson Check Glow
+    eventBus.on('TURN_CHANGED', ({ turn, isCheck }: TurnChangedPayload) => {
+      this.updateKingCheckGlow(turn, isCheck);
+    });
+
+    // Arcane Mode: Freeze Spell
+    eventBus.on('PIECE_FROZEN', ({ square }) => {
+      const piece = this.pieceMap.get(square);
+      if (piece) {
+        piece.setFrozen(true);
+      }
+    });
+
+    eventBus.on('PIECE_UNFROZEN', (square) => {
+      const piece = this.pieceMap.get(square);
+      if (piece) {
+        piece.setFrozen(false);
+      }
+    });
+
+    // Arcane Mode: Revive Spell
+    eventBus.on('PIECE_REVIVED', ({ pieceType, color, square }) => {
+      const entity = new PieceEntity(pieceType as any, color, square);
+      this.pieceGroup.add(entity.mesh);
+      this.pieceMap.set(square, entity);
+    });
+  }
+
+  private updateKingCheckGlow(turn: 'w' | 'b', isCheck: boolean): void {
+    this.pieceMap.forEach((piece) => {
+      if (piece.type === 'k') {
+        const isInCheck = isCheck && piece.color === turn;
+        piece.setCheck(isInCheck);
+      }
     });
   }
 
@@ -105,7 +168,7 @@ class WizardsChessApp {
     // Check if this move is a capture
     if (move.captured) {
       let victimSquare = move.to;
-      // Handle en-passant capture (victim is on the passed pawn square)
+      // Handle en-passant capture
       if (!this.pieceMap.has(victimSquare)) {
         const victimRank = move.color === 'w' ? '5' : '4';
         victimSquare = `${move.to.charAt(0)}${victimRank}`;
@@ -121,7 +184,6 @@ class WizardsChessApp {
           this.checkPromotion(attacker, move);
         });
       } else {
-        // Fallback move
         this.pieceMap.delete(move.from);
         this.choreographer.animateMove(attacker, move.to, () => {
           this.pieceMap.set(move.to, attacker);
@@ -144,7 +206,6 @@ class WizardsChessApp {
   private handleCastlingRook(move: MoveEventPayload): void {
     if (move.piece !== 'k') return;
 
-    // White kingside: e1 -> g1 (rook: h1 -> f1)
     if (move.from === 'e1' && move.to === 'g1') {
       const rook = this.pieceMap.get('h1');
       if (rook) {
@@ -153,9 +214,7 @@ class WizardsChessApp {
           this.pieceMap.set('f1', rook);
         });
       }
-    }
-    // White queenside: e1 -> c1 (rook: a1 -> d1)
-    else if (move.from === 'e1' && move.to === 'c1') {
+    } else if (move.from === 'e1' && move.to === 'c1') {
       const rook = this.pieceMap.get('a1');
       if (rook) {
         this.pieceMap.delete('a1');
@@ -163,9 +222,7 @@ class WizardsChessApp {
           this.pieceMap.set('d1', rook);
         });
       }
-    }
-    // Black kingside: e8 -> g8 (rook: h8 -> f8)
-    else if (move.from === 'e8' && move.to === 'g8') {
+    } else if (move.from === 'e8' && move.to === 'g8') {
       const rook = this.pieceMap.get('h8');
       if (rook) {
         this.pieceMap.delete('h8');
@@ -173,9 +230,7 @@ class WizardsChessApp {
           this.pieceMap.set('f8', rook);
         });
       }
-    }
-    // Black queenside: e8 -> c8 (rook: a8 -> d8)
-    else if (move.from === 'e8' && move.to === 'c8') {
+    } else if (move.from === 'e8' && move.to === 'c8') {
       const rook = this.pieceMap.get('a8');
       if (rook) {
         this.pieceMap.delete('a8');
@@ -190,7 +245,6 @@ class WizardsChessApp {
     if (piece.type === 'p') {
       const rank = move.to.charAt(1);
       if (rank === '8' || rank === '1') {
-        // Pawn reached final rank -> Upgrade to Queen
         this.pieceGroup.remove(piece.mesh);
         piece.dispose();
 
@@ -201,18 +255,12 @@ class WizardsChessApp {
     }
   }
 
-  /**
-   * Showcase Demo Shatter:
-   * Instant demonstration of an attack, kinetic impact, and 30-shard shatter explosion.
-   */
   private triggerDemoShatterShowcase(): void {
     if (this.choreographer.getIsAnimating()) return;
 
-    // Pick or spawn a demo victim on the board
     const demoVictimSquare = 'e5';
     const demoAttackerSquare = 'e2';
 
-    // If a victim already exists at e5, shatter it directly
     let victim = this.pieceMap.get(demoVictimSquare);
     if (!victim) {
       victim = new PieceEntity('p', 'w', demoVictimSquare);
@@ -220,13 +268,11 @@ class WizardsChessApp {
       this.pieceMap.set(demoVictimSquare, victim);
     }
 
-    // Create showcase obsidian attacker
-    const attacker = new PieceEntity('n', 'b', demoAttackerSquare);
+    const attacker = new PieceEntity('r', 'b', demoAttackerSquare);
     this.pieceGroup.add(attacker.mesh);
 
     this.choreographer.animateAttack(attacker, victim, demoVictimSquare, () => {
       this.pieceMap.delete(demoVictimSquare);
-      // Clean up demo attacker after showcase
       setTimeout(() => {
         this.pieceGroup.remove(attacker.mesh);
         attacker.dispose();
@@ -243,18 +289,21 @@ class WizardsChessApp {
   }
 
   private onFrameUpdate(delta: number, elapsed: number): void {
-    // 1. Cathedral Environment (braziers & embers)
+    // 1. Cathedral Environment (braziers, embers, lighting)
     this.cathedralEnv.update(delta, elapsed);
 
-    // 2. Board Grid (rune indicators)
+    // 2. Board Grid
     this.boardGrid.update(delta, elapsed);
 
-    // 3. Piece Idle Levitation Breathing & Rune Rings
+    // 3. 3D Crystal Hourglasses Sand Timers
+    this.hourglasses.update(delta, elapsed);
+
+    // 4. Piece Levitation & Living Reactions
     this.pieceMap.forEach((piece) => {
       piece.update(delta, elapsed);
     });
 
-    // 4. Shatter Physics Engine (tumbling shards & shockwaves)
+    // 5. Shatter Physics Engine
     this.shatterEngine.update(delta);
   }
 }

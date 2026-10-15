@@ -69,6 +69,9 @@ export class GameStateManager {
 
   public selectSquare(square: string | null): void {
     if (!square) {
+      if (this.selectedSquare) {
+        eventBus.emit('BLUNDER_DETECTED', { square: this.selectedSquare, isBlunder: false });
+      }
       this.selectedSquare = null;
       eventBus.emit('PIECE_DESELECTED', undefined);
       return;
@@ -76,7 +79,6 @@ export class GameStateManager {
 
     const piece = this.getPieceAt(square);
     if (!piece) {
-      // Clicked on empty square - if we already had a selected piece, check if it's a legal move
       if (this.selectedSquare) {
         this.attemptMove(this.selectedSquare, square);
       } else {
@@ -88,8 +90,22 @@ export class GameStateManager {
 
     // If clicking a piece of current turn's color, select it
     if (piece.color === this.chess.turn()) {
+      // Clear previous tremble if any
+      if (this.selectedSquare) {
+        eventBus.emit('BLUNDER_DETECTED', { square: this.selectedSquare, isBlunder: false });
+      }
+
       this.selectedSquare = square;
       eventBus.emit('PIECE_SELECTED', { square, piece });
+
+      // Check if selected piece is currently hanging or under attack -> tremble!
+      const opponentColor = piece.color === 'w' ? 'b' : 'w';
+      const isUnderAttack = this.chess.isAttacked(square as Square, opponentColor);
+      if (isUnderAttack && piece.type !== 'p') {
+        eventBus.emit('BLUNDER_DETECTED', { square, isBlunder: true });
+      } else {
+        eventBus.emit('BLUNDER_DETECTED', { square, isBlunder: false });
+      }
 
       const moves = this.chess.moves({ square: square as Square, verbose: true });
       const legalTargets = moves.map(m => ({
@@ -120,6 +136,16 @@ export class GameStateManager {
         return false;
       }
 
+      // Check blunder: if piece moves to an attacked square without defender or equal trade
+      const piece = this.getPieceAt(from);
+      if (piece) {
+        const opponentColor = piece.color === 'w' ? 'b' : 'w';
+        const willBeAttacked = this.chess.isAttacked(to as Square, opponentColor);
+        if (willBeAttacked && piece.type !== 'p' && !validMove.captured) {
+          eventBus.emit('BLUNDER_DETECTED', { square: from, isBlunder: true });
+        }
+      }
+
       this.executeMove(from, to, validMove.promotion || promotion);
       return true;
     } catch {
@@ -142,7 +168,6 @@ export class GameStateManager {
 
       // Track captured piece
       if (moveResult.captured) {
-        // If white moved, white captured a black piece, so black lost that piece
         if (moveResult.color === 'w') {
           this.capturedPieces.b.push(moveResult.captured);
         } else {
@@ -164,11 +189,13 @@ export class GameStateManager {
 
       eventBus.emit('MOVE_EXECUTED', movePayload);
 
-      // Deselect square
+      // Deselect square & clear tremble
+      if (this.selectedSquare) {
+        eventBus.emit('BLUNDER_DETECTED', { square: this.selectedSquare, isBlunder: false });
+      }
       this.selectedSquare = null;
       eventBus.emit('PIECE_DESELECTED', undefined);
 
-      // Full move number from FEN (last component)
       const fenTokens = this.chess.fen().split(' ');
       const fullMoveNumber = parseInt(fenTokens[5], 10) || 1;
 
@@ -194,6 +221,27 @@ export class GameStateManager {
       w: [...this.capturedPieces.w],
       b: [...this.capturedPieces.b]
     };
+  }
+
+  public loadFen(fen: string): void {
+    this.chess.load(fen);
+    this.selectedSquare = null;
+    this.capturedPieces = { w: [], b: [] };
+    eventBus.emit('PIECE_DESELECTED', undefined);
+
+    const fenTokens = fen.split(' ');
+    const fullMoveNumber = parseInt(fenTokens[5], 10) || 1;
+
+    const turnPayload: TurnChangedPayload = {
+      turn: this.chess.turn(),
+      isCheck: this.chess.inCheck(),
+      isCheckmate: this.chess.isCheckmate(),
+      isStalemate: this.chess.isStalemate(),
+      isDraw: this.chess.isDraw(),
+      fullMoveNumber
+    };
+    eventBus.emit('TURN_CHANGED', turnPayload);
+    eventBus.emit('GAME_RESET', undefined);
   }
 
   public reset(): void {
