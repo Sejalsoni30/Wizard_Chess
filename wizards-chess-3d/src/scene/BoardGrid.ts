@@ -11,10 +11,12 @@ import {
 } from '../config/constants';
 import eventBus, { LegalTarget } from '../core/EventBus';
 import gameState from '../core/GameStateManager';
+import cathedralAudio from '../audio/CathedralAudio';
 
 export class BoardGrid {
   public group: THREE.Group;
   private tileMeshes: Map<string, THREE.Mesh> = new Map();
+  private pieceGroup: THREE.Group | null = null;
   private raycaster: THREE.Raycaster;
   private pointer: THREE.Vector2;
   private camera: THREE.Camera;
@@ -30,6 +32,7 @@ export class BoardGrid {
   private selectMesh: THREE.Mesh;
   private checkMesh: THREE.Mesh;
   private legalIndicatorGroup: THREE.Group;
+  private hintGroup: THREE.Group;
 
   constructor(scene: THREE.Scene, camera: THREE.Camera, domElement: HTMLElement) {
     this.group = new THREE.Group();
@@ -46,6 +49,9 @@ export class BoardGrid {
     // Visual Indicators
     this.legalIndicatorGroup = new THREE.Group();
     this.group.add(this.legalIndicatorGroup);
+
+    this.hintGroup = new THREE.Group();
+    this.group.add(this.hintGroup);
 
     this.hoverMesh = this.createHoverMesh();
     this.selectMesh = this.createSelectMesh();
@@ -373,6 +379,20 @@ export class BoardGrid {
       (this.selectMesh.material as THREE.MeshBasicMaterial).opacity = 0;
       (this.checkMesh.material as THREE.MeshBasicMaterial).opacity = 0;
       this.clearLegalMoveIndicators();
+      this.clearHintIndicators();
+    });
+
+    eventBus.on('BOARD_LOADED', () => {
+      this.selectedSquare = null;
+      this.legalMoves = [];
+      (this.selectMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+      (this.checkMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+      this.clearLegalMoveIndicators();
+      this.clearHintIndicators();
+    });
+
+    eventBus.on('BEST_MOVE_HINT', ({ from, to }) => {
+      this.highlightHint(from, to);
     });
   }
 
@@ -402,6 +422,7 @@ export class BoardGrid {
         : this.createMoveDotMesh();
 
       indicator.position.set(wPos.x, BOARD_TOP_Y + 0.015, wPos.z);
+      indicator.userData = { square: move.to };
       this.legalIndicatorGroup.add(indicator);
     }
   }
@@ -410,6 +431,69 @@ export class BoardGrid {
     while (this.legalIndicatorGroup.children.length > 0) {
       const child = this.legalIndicatorGroup.children[0];
       this.legalIndicatorGroup.remove(child);
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    }
+  }
+
+  public highlightHint(from: string, to: string): void {
+    this.clearHintIndicators();
+
+    const createHintBeacon = (sq: string, isDest: boolean) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.beginPath();
+        ctx.arc(64, 64, 52, 0, Math.PI * 2);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = isDest ? '#10b981' : '#f59e0b';
+        ctx.shadowColor = isDest ? '#34d399' : '#fbbf24';
+        ctx.shadowBlur = 18;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(64, 64, 28, 0, Math.PI * 2);
+        ctx.fillStyle = isDest ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)';
+        ctx.fill();
+      }
+
+      const tex = new THREE.CanvasTexture(canvas);
+      const geo = new THREE.PlaneGeometry(SQUARE_SIZE * 0.95, SQUARE_SIZE * 0.95);
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      const wPos = squareToWorld(sq);
+      mesh.position.set(wPos.x, BOARD_TOP_Y + 0.018, wPos.z);
+      return mesh;
+    };
+
+    const fromBeacon = createHintBeacon(from, false);
+    const toBeacon = createHintBeacon(to, true);
+    this.hintGroup.add(fromBeacon);
+    this.hintGroup.add(toBeacon);
+
+    // Auto-clear after 5 seconds
+    setTimeout(() => {
+      this.clearHintIndicators();
+    }, 5000);
+  }
+
+  public clearHintIndicators(): void {
+    while (this.hintGroup.children.length > 0) {
+      const child = this.hintGroup.children[0];
+      this.hintGroup.remove(child);
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
         if (Array.isArray(child.material)) {
@@ -484,6 +568,10 @@ export class BoardGrid {
     return mesh;
   }
 
+  public setPieceGroup(group: THREE.Group): void {
+    this.pieceGroup = group;
+  }
+
   private setupInteraction(): void {
     const updatePointer = (e: MouseEvent) => {
       const rect = this.domElement.getBoundingClientRect();
@@ -491,25 +579,78 @@ export class BoardGrid {
       this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     };
 
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
     this.domElement.addEventListener('mousemove', (e) => {
       updatePointer(e);
       this.raycastHover();
     });
 
     this.domElement.addEventListener('pointerdown', (e) => {
-      updatePointer(e);
-      this.raycastClick();
+      startX = e.clientX;
+      startY = e.clientY;
+      startTime = performance.now();
+    });
+
+    this.domElement.addEventListener('pointerup', (e) => {
+      const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+      const elapsed = performance.now() - startTime;
+
+      // Only fire click if the user wasn't dragging the camera (under 15px and under 800ms)
+      if (dist < 15 && elapsed < 800) {
+        updatePointer(e);
+        this.raycastClick();
+      }
     });
   }
 
-  private raycastHover(): void {
+  private getRaycastSquare(): string | null {
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const intersects = this.raycaster.intersectObjects(Array.from(this.tileMeshes.values()), false);
 
-    if (intersects.length > 0) {
-      const hitTile = intersects[0].object as THREE.Mesh;
-      const sq = hitTile.userData.square as string;
+    // 1. Direct hit on legal move indicators (dot or capture rune)
+    if (this.legalIndicatorGroup && this.legalIndicatorGroup.children.length > 0) {
+      const indicatorHits = this.raycaster.intersectObjects(this.legalIndicatorGroup.children, true);
+      if (indicatorHits.length > 0) {
+        let obj: THREE.Object3D | null = indicatorHits[0].object;
+        while (obj) {
+          if (obj.userData && obj.userData.square) {
+            return obj.userData.square;
+          }
+          obj = obj.parent;
+        }
+      }
+    }
 
+    // 2. Direct hit on 3D piece mesh
+    if (this.pieceGroup) {
+      const pieceHits = this.raycaster.intersectObjects(this.pieceGroup.children, true);
+      if (pieceHits.length > 0) {
+        let obj: THREE.Object3D | null = pieceHits[0].object;
+        while (obj) {
+          if (obj.userData && obj.userData.square) {
+            return obj.userData.square;
+          }
+          obj = obj.parent;
+        }
+      }
+    }
+
+    // 3. Otherwise check board floor tiles
+    const tileHits = this.raycaster.intersectObjects(Array.from(this.tileMeshes.values()), false);
+    if (tileHits.length > 0) {
+      const hitTile = tileHits[0].object as THREE.Mesh;
+      return hitTile.userData.square as string;
+    }
+
+    return null;
+  }
+
+  private raycastHover(): void {
+    const sq = this.getRaycastSquare();
+
+    if (sq) {
       if (sq !== this.hoveredSquare) {
         this.hoveredSquare = sq;
         const wPos = squareToWorld(sq);
@@ -525,12 +666,10 @@ export class BoardGrid {
   }
 
   private raycastClick(): void {
-    this.raycaster.setFromCamera(this.pointer, this.camera);
-    const intersects = this.raycaster.intersectObjects(Array.from(this.tileMeshes.values()), false);
+    const sq = this.getRaycastSquare();
 
-    if (intersects.length > 0) {
-      const hitTile = intersects[0].object as THREE.Mesh;
-      const sq = hitTile.userData.square as string;
+    if (sq) {
+      cathedralAudio.playSelect();
       gameState.selectSquare(sq);
     } else {
       gameState.selectSquare(null);

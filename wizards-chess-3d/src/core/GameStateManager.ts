@@ -16,6 +16,10 @@ export class GameStateManager {
       this.executeMove(from, to, promotion);
     });
 
+    eventBus.on('PROMOTION_RESOLVED', ({ from, to, promotion }) => {
+      this.executeMove(from, to, promotion);
+    });
+
     eventBus.on('GAME_RESET', () => {
       this.reset();
     });
@@ -144,6 +148,17 @@ export class GameStateManager {
         if (willBeAttacked && piece.type !== 'p' && !validMove.captured) {
           eventBus.emit('BLUNDER_DETECTED', { square: from, isBlunder: true });
         }
+
+        // Check if pawn reaches promotion rank
+        if (piece.type === 'p') {
+          const rank = to.charAt(1);
+          if ((piece.color === 'w' && rank === '8') || (piece.color === 'b' && rank === '1')) {
+            if (!validMove.promotion && promotion === 'q') {
+              eventBus.emit('PROMOTION_REQUESTED', { from, to, color: piece.color });
+              return true;
+            }
+          }
+        }
       }
 
       this.executeMove(from, to, validMove.promotion || promotion);
@@ -209,6 +224,7 @@ export class GameStateManager {
       };
 
       eventBus.emit('TURN_CHANGED', turnPayload);
+      this.updateMaterial();
       return true;
     } catch (e) {
       console.error('Invalid move in GameStateManager:', e);
@@ -221,6 +237,56 @@ export class GameStateManager {
       w: [...this.capturedPieces.w],
       b: [...this.capturedPieces.b]
     };
+  }
+
+  public updateMaterial(): { whiteScore: number; blackScore: number; diff: number } {
+    const values: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    let whiteScore = 0;
+    let blackScore = 0;
+
+    const board = this.chess.board();
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = board[r][c];
+        if (p && values[p.type]) {
+          if (p.color === 'w') whiteScore += values[p.type];
+          else blackScore += values[p.type];
+        }
+      }
+    }
+
+    const diff = whiteScore - blackScore;
+    eventBus.emit('MATERIAL_UPDATED', { whiteScore, blackScore, diff });
+    return { whiteScore, blackScore, diff };
+  }
+
+  public undoMove(isAIMode: boolean = false): boolean {
+    const undone = this.chess.undo();
+    if (!undone) return false;
+
+    // In AI mode, if player plays White and it's now Black's turn, undo one more so it's White's turn
+    if (isAIMode && this.chess.turn() === 'b') {
+      this.chess.undo();
+    }
+
+    this.selectedSquare = null;
+    eventBus.emit('PIECE_DESELECTED', undefined);
+
+    const fenTokens = this.chess.fen().split(' ');
+    const fullMoveNumber = parseInt(fenTokens[5], 10) || 1;
+
+    const turnPayload: TurnChangedPayload = {
+      turn: this.chess.turn(),
+      isCheck: this.chess.inCheck(),
+      isCheckmate: this.chess.isCheckmate(),
+      isStalemate: this.chess.isStalemate(),
+      isDraw: this.chess.isDraw(),
+      fullMoveNumber
+    };
+    eventBus.emit('TURN_CHANGED', turnPayload);
+    eventBus.emit('BOARD_LOADED', { fen: this.chess.fen() });
+    this.updateMaterial();
+    return true;
   }
 
   public loadFen(fen: string): void {
@@ -241,7 +307,8 @@ export class GameStateManager {
       fullMoveNumber
     };
     eventBus.emit('TURN_CHANGED', turnPayload);
-    eventBus.emit('GAME_RESET', undefined);
+    eventBus.emit('BOARD_LOADED', { fen });
+    this.updateMaterial();
   }
 
   public reset(): void {
@@ -259,6 +326,8 @@ export class GameStateManager {
       fullMoveNumber: 1
     };
     eventBus.emit('TURN_CHANGED', turnPayload);
+    eventBus.emit('BOARD_LOADED', { fen: this.chess.fen() });
+    this.updateMaterial();
   }
 }
 

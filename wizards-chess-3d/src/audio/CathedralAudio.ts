@@ -62,6 +62,13 @@ export class CathedralAudio {
     return this.muted;
   }
 
+  public setVolume(volume: number): void {
+    const clamped = Math.max(0, Math.min(1, volume));
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(this.muted ? 0 : clamped, this.ctx.currentTime);
+    }
+  }
+
   /**
    * Helper to calculate normalized stereo pan (-1.0 to +1.0) from a 3D board position or square
    */

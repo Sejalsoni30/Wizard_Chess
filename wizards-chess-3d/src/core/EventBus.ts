@@ -93,6 +93,21 @@ export type EventMap = {
 
   // Living Piece Blunder Detection
   'BLUNDER_DETECTED': { square: string; isBlunder: boolean };
+
+  // AI Thinking & Difficulty
+  'AI_THINKING_STATUS': boolean;
+  'AI_DIFFICULTY_CHANGED': 'APPRENTICE' | 'ADEPT' | 'ARCHMAGE';
+
+  // Pawn Promotion & Game Over Announcement
+  'PROMOTION_REQUESTED': { from: string; to: string; color: 'w' | 'b' };
+  'PROMOTION_RESOLVED': { from: string; to: string; promotion: 'q' | 'r' | 'b' | 'n' };
+  'GAME_OVER_MODAL_REQUESTED': { title: string; subtitle: string; isVictory: boolean; stats: string };
+
+  // Board Sync & Real Game Features
+  'BOARD_LOADED': { fen: string };
+  'BEST_MOVE_HINT': { from: string; to: string };
+  'MATERIAL_UPDATED': { whiteScore: number; blackScore: number; diff: number };
+  'VIEW_CHANGED': 'MENU' | 'PLAY' | 'PUZZLES' | 'MULTIPLAYER' | 'CODEX' | 'SETTINGS';
 };
 
 type EventKey = keyof EventMap;

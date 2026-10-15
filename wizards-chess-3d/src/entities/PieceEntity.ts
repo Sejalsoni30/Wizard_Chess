@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { squareToWorld, ANIMATION_CONFIG, PIECE_HOVER_Y, COLOR_PALETTE } from '../config/constants';
 import PieceFactory from './PieceFactory';
 
@@ -15,6 +16,7 @@ export class PieceEntity {
   public basePosition: THREE.Vector3;
   private breathPhase: number;
   private runeRing: THREE.Mesh | null = null;
+  private isSelected: boolean = false;
 
   // Living Piece Reactions
   private isTrembling: boolean = false;
@@ -43,7 +45,35 @@ export class PieceEntity {
     this.basePosition = new THREE.Vector3(wPos.x, PIECE_HOVER_Y, wPos.z);
     this.mesh.position.copy(this.basePosition);
 
+    this.tagMeshesWithSquare(square);
     this.breathPhase = Math.random() * Math.PI * 2;
+  }
+
+  private tagMeshesWithSquare(sq: string): void {
+    this.mesh.userData = { pieceEntity: this, square: sq };
+    this.mesh.traverse((child) => {
+      child.userData = { pieceEntity: this, square: sq };
+    });
+  }
+
+  public setSelected(selected: boolean): void {
+    this.isSelected = selected;
+    if (selected) {
+      gsap.to(this.mesh.position, {
+        y: this.basePosition.y + 0.65,
+        duration: 0.22,
+        ease: 'power2.out'
+      });
+      if (this.runeRing) {
+        (this.runeRing.material as THREE.MeshBasicMaterial).opacity = 1.0;
+      }
+    } else {
+      gsap.to(this.mesh.position, {
+        y: this.basePosition.y,
+        duration: 0.2,
+        ease: 'power2.in'
+      });
+    }
   }
 
   public setState(state: PieceState): void {
@@ -51,11 +81,13 @@ export class PieceEntity {
     if (state === 'IDLE') {
       const wPos = squareToWorld(this.square);
       this.basePosition.set(wPos.x, PIECE_HOVER_Y, wPos.z);
+      this.mesh.position.y = this.basePosition.y;
     }
   }
 
   public setSquare(square: string): void {
     this.square = square;
+    this.tagMeshesWithSquare(square);
     const wPos = squareToWorld(square);
     this.basePosition.set(wPos.x, PIECE_HOVER_Y, wPos.z);
   }
@@ -145,8 +177,8 @@ export class PieceEntity {
     if (!this.mesh.visible || this.state === 'DEAD') return;
 
     if (this.state === 'IDLE') {
-      // 1. Idle vertical levitation (unless frozen in ice)
-      if (!this.isFrozen) {
+      // 1. Idle vertical levitation (unless currently lifted by selection or frozen in ice)
+      if (!this.isFrozen && !this.isSelected) {
         const breath = Math.sin(elapsed * ANIMATION_CONFIG.idleBreathSpeed + this.breathPhase) * ANIMATION_CONFIG.idleBreathAmp;
         this.mesh.position.y = this.basePosition.y + breath;
       }

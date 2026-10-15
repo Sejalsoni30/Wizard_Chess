@@ -88,12 +88,15 @@ const TABLES: Record<string, number[][]> = {
   k: KING_TABLE
 };
 
+export type AIDifficulty = 'APPRENTICE' | 'ADEPT' | 'ARCHMAGE';
+
 export class AIController {
   private mode: 'AI' | 'PVP' = 'AI';
   private aiColor: 'b' = 'b';
   private isThinking: boolean = false;
   private pendingTimeout: any = null;
   private searchDepth: number = 3;
+  private difficulty: AIDifficulty = 'ARCHMAGE';
 
   constructor() {
     this.initListeners();
@@ -109,6 +112,10 @@ export class AIController {
       this.checkAndTriggerAIMove();
     });
 
+    eventBus.on('AI_DIFFICULTY_CHANGED', (diff: AIDifficulty) => {
+      this.setDifficulty(diff);
+    });
+
     eventBus.on('TURN_CHANGED', ({ turn, isCheckmate, isStalemate, isDraw }) => {
       if (isCheckmate || isStalemate || isDraw) return;
       if (this.mode === 'AI' && turn === this.aiColor) {
@@ -122,7 +129,19 @@ export class AIController {
         this.pendingTimeout = null;
       }
       this.isThinking = false;
+      eventBus.emit('AI_THINKING_STATUS', false);
     });
+  }
+
+  public setDifficulty(diff: AIDifficulty): void {
+    this.difficulty = diff;
+    if (diff === 'APPRENTICE') this.searchDepth = 1;
+    else if (diff === 'ADEPT') this.searchDepth = 2;
+    else this.searchDepth = 3;
+  }
+
+  public getDifficulty(): AIDifficulty {
+    return this.difficulty;
   }
 
   public setMode(mode: 'AI' | 'PVP'): void {
@@ -133,23 +152,47 @@ export class AIController {
     return this.mode;
   }
 
+  public getHintMove(): { from: string; to: string; promotion?: string } | null {
+    const chess = gameState.getChess();
+    if (gameState.isGameOver()) return null;
+    const best = this.getBestMove(chess, 2);
+    if (best) {
+      eventBus.emit('BEST_MOVE_HINT', { from: best.from, to: best.to });
+    }
+    return best;
+  }
+
   private checkAndTriggerAIMove(): void {
     if (this.mode !== 'AI') return;
     if (gameState.getTurn() !== this.aiColor) return;
     if (gameState.isGameOver()) return;
     if (this.isThinking) return;
 
+    eventBus.emit('AI_THINKING_STATUS', true);
+
     // Small delay to simulate arcane deliberation and allow piece animations to settle
     this.pendingTimeout = setTimeout(() => {
       this.computeAndMakeMove();
-    }, 450);
+    }, 550);
   }
 
   private computeAndMakeMove(): void {
     this.isThinking = true;
     const currentChess = gameState.getChess();
-    const bestMove = this.getBestMove(currentChess, this.searchDepth);
+    const legalMoves = currentChess.moves({ verbose: true });
+
+    let bestMove: { from: string; to: string; promotion?: string } | null = null;
+
+    // Apprentice mode: occasional random exploration
+    if (this.difficulty === 'APPRENTICE' && Math.random() < 0.35 && legalMoves.length > 0) {
+      const rnd = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+      bestMove = { from: rnd.from, to: rnd.to, promotion: rnd.promotion || 'q' };
+    } else {
+      bestMove = this.getBestMove(currentChess, this.searchDepth);
+    }
+
     this.isThinking = false;
+    eventBus.emit('AI_THINKING_STATUS', false);
 
     if (bestMove) {
       eventBus.emit('MOVE_INTENT', {

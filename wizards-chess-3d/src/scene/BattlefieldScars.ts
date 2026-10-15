@@ -25,6 +25,10 @@ export class BattlefieldScars {
     eventBus.on('GAME_RESET', () => {
       this.clearAll();
     });
+
+    eventBus.on('BOARD_LOADED', () => {
+      this.clearAll();
+    });
   }
 
   /**

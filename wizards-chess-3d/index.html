@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wizard's Chess 3D | Arcane WebGL & Physics</title>
-  <meta name="description" content="A fully procedural 3D Wizard's Chess web application built with Three.js, chess.js, GSAP, Web Speech API, WebRTC, and Material Design 3." />
+  <title>Wizard's Chess 3D | The Cathedral of Living Stone</title>
+  <meta name="description" content="A fully procedural 3D Wizard's Chess web application featuring Living Pieces, Voice Commands, Unique Kill Choreographies, Arcane Spells, 3D Crystal Hourglasses, and WebRTC Multiplayer." />
   
   <!-- Google Fonts: Cinzel, Inter, and Material Symbols Outlined -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,250 +18,480 @@
   <!-- 3D WebGL Canvas Host -->
   <div id="canvas-container"></div>
 
-  <!-- Material Design 3 Glassmorphic HUD -->
+  <!-- Material Design 3 Glassmorphic App Shell -->
   <div id="app-hud">
-    <!-- Top Bar -->
-    <header id="top-bar" class="md3-surface md3-glass">
-      <div class="brand-section">
-        <span class="material-symbols-outlined brand-icon">auto_fix_high</span>
-        <div class="brand-text">
-          <h1 class="brand-title">WIZARD'S CHESS</h1>
-          <span class="brand-subtitle">ARCANE WEBGL ENGINE</span>
-        </div>
-      </div>
 
-      <div class="game-status-center">
-        <!-- Turn Indicator Chip -->
-        <div id="turn-chip" class="md3-chip turn-white">
-          <span class="turn-dot"></span>
-          <span id="turn-label">White's Turn</span>
+    <!-- ========================================================
+         PAGE 1: MAIN MENU LANDING PORTAL (The Cathedral Altar)
+         ======================================================== -->
+    <div id="page-main-menu" class="page-view">
+      <div class="menu-backdrop-glow"></div>
+      
+      <div class="menu-hero-container">
+        <!-- Royal Arcane Emblem -->
+        <div class="menu-crest-ring">
+          <span class="material-symbols-outlined menu-crest-icon">auto_fix_high</span>
         </div>
 
-        <!-- Check / Alert Badge -->
-        <div id="status-badge" class="md3-badge status-normal">
-          <span class="material-symbols-outlined status-icon">shield</span>
-          <span id="status-text">In Play</span>
-        </div>
+        <h1 class="menu-hero-title">WIZARD'S CHESS</h1>
+        <p class="menu-hero-subtitle">THE CATHEDRAL OF LIVING STONE & ARCANE LORE</p>
 
-        <!-- Voice Command Live Status Pill -->
-        <div id="voice-pill" class="md3-pill hidden">
-          <span class="voice-wave-dot"></span>
-          <span id="voice-pill-text">Listening...</span>
-        </div>
-      </div>
-
-      <!-- Header Action Controls Group -->
-      <div class="header-actions-group">
-        <!-- Voice Command Button -->
-        <button id="btn-voice" class="md3-icon-btn" title="Speak Moves Aloud (e.g. 'Knight to F3')">
-          <span class="material-symbols-outlined">mic</span>
-          <span class="btn-label">Voice</span>
-        </button>
-
-        <!-- 1-Click Friend Link Button -->
-        <button id="btn-p2p" class="md3-icon-btn" title="1-Click Friend Link (WebRTC P2P Duel)">
-          <span class="material-symbols-outlined">share</span>
-          <span class="btn-label">Friend Link</span>
-        </button>
-
-        <!-- Iconic Lore Puzzles Button -->
-        <button id="btn-puzzles" class="md3-icon-btn" title="Iconic Lore Puzzles (3-Move Checkmates)">
-          <span class="material-symbols-outlined">psychology_alt</span>
-          <span class="btn-label">Puzzles</span>
-        </button>
-
-        <!-- Camera Preset Controls -->
-        <nav class="camera-controls-group" aria-label="Camera Presets">
-          <button id="cam-orbit" class="md3-icon-btn active" title="Free Orbit View">
-            <span class="material-symbols-outlined">explore</span>
-          </button>
-          <button id="cam-white" class="md3-icon-btn" title="White POV">
-            <span class="material-symbols-outlined">visibility</span>
-          </button>
-          <button id="cam-black" class="md3-icon-btn" title="Black POV">
-            <span class="material-symbols-outlined">visibility_off</span>
-          </button>
-          <button id="cam-top" class="md3-icon-btn" title="Tactical Top-Down View">
-            <span class="material-symbols-outlined">grid_view</span>
-          </button>
-        </nav>
-      </div>
-    </header>
-
-    <!-- Arcane Spells Dock (Visible when Arcane Mode is ON) -->
-    <aside id="arcane-dock" class="md3-surface md3-glass hidden">
-      <div class="arcane-dock-header">
-        <div class="arcane-title-row">
-          <span class="material-symbols-outlined arcane-icon">magic_button</span>
-          <span class="arcane-title">ARCANE MANA</span>
-        </div>
-        <span id="mana-count" class="mana-badge">35 / 100</span>
-      </div>
-
-      <!-- Glowing Mana Bar -->
-      <div class="mana-track">
-        <div id="mana-fill" class="mana-fill" style="width: 35%;"></div>
-      </div>
-
-      <!-- 3 Spell Incantations -->
-      <div class="spells-row">
-        <button id="spell-freeze" class="spell-btn" title="Freeze an enemy piece for 1 turn (Cost: 35 Mana)">
-          <span class="material-symbols-outlined spell-glyph">ac_unit</span>
-          <span class="spell-name">Frost Glyph</span>
-          <span class="spell-cost">35 MP</span>
-        </button>
-
-        <button id="spell-warp" class="spell-btn" title="Warp your piece to any safe square (Cost: 40 Mana)">
-          <span class="material-symbols-outlined spell-glyph">cyclone</span>
-          <span class="spell-name">Arcane Warp</span>
-          <span class="spell-cost">40 MP</span>
-        </button>
-
-        <button id="spell-revive" class="spell-btn" title="Resurrect a fallen piece from your graveyard (Cost: 65 Mana)">
-          <span class="material-symbols-outlined spell-glyph">auto_awesome</span>
-          <span class="spell-name">Resurrect</span>
-          <span class="spell-cost">65 MP</span>
-        </button>
-      </div>
-    </aside>
-
-    <!-- Right Floating Card: Move History & Graveyard -->
-    <aside id="history-card" class="md3-surface md3-glass">
-      <div class="card-header">
-        <div class="header-title-row">
-          <span class="material-symbols-outlined card-header-icon">history_edu</span>
-          <h2 class="card-title">Chronicle of Moves</h2>
-        </div>
-        <span id="move-count-chip" class="md3-subchip">0 moves</span>
-      </div>
-
-      <!-- Captured Pieces Graveyard Bar -->
-      <div id="graveyard-container">
-        <div class="graveyard-row">
-          <span class="graveyard-label">White Losses:</span>
-          <div id="white-graveyard" class="graveyard-tokens"></div>
-        </div>
-        <div class="graveyard-row">
-          <span class="graveyard-label">Black Losses:</span>
-          <div id="black-graveyard" class="graveyard-tokens"></div>
-        </div>
-      </div>
-
-      <!-- Move Log List -->
-      <div id="move-log" class="move-log-scroll" tabindex="0" role="region" aria-label="Move History Log">
-        <div class="empty-log-hint">Awaiting the opening incantation...</div>
-      </div>
-    </aside>
-
-    <!-- Bottom Action Dock -->
-    <footer id="bottom-dock" class="md3-surface md3-glass">
-      <div class="dock-left">
-        <!-- Game Mode Segmented Switch -->
-        <div class="segmented-control" role="radiogroup" aria-label="Game Mode">
-          <button id="mode-ai" class="segment-btn active" role="radio" aria-checked="true">
-            <span class="material-symbols-outlined">psychology</span>
-            <span>vs Archmage AI</span>
-          </button>
-          <button id="mode-pvp" class="segment-btn" role="radio" aria-checked="false">
-            <span class="material-symbols-outlined">group</span>
-            <span>2-Player Duel</span>
+        <!-- Primary Quick Action -->
+        <div class="menu-cta-row">
+          <button id="btn-menu-quick-play" class="md3-filled-btn pulse-glow hero-cta-btn" title="Quick Match vs Archmage AI">
+            <span class="material-symbols-outlined">swords</span>
+            <span>ENTER ARENA NOW</span>
           </button>
         </div>
 
-        <!-- Arcane Mode Toggle Chip -->
-        <button id="btn-arcane-toggle" class="md3-chip-btn" title="Toggle Arcane Mana & Spells Mode">
-          <span class="material-symbols-outlined">auto_fix_normal</span>
-          <span>Arcane Mode</span>
-        </button>
-      </div>
+        <!-- 4 Featured Game Mode Cards Grid -->
+        <div class="menu-modes-grid">
+          <!-- Card 1: Archmage AI Duel -->
+          <div class="menu-card" id="card-mode-ai">
+            <div class="card-icon-glow purple">
+              <span class="material-symbols-outlined">psychology</span>
+            </div>
+            <h3 class="card-title">Archmage AI Duel</h3>
+            <p class="card-desc">Challenge ancient machine intelligence with living pieces that tremble before sacrifices.</p>
+            
+            <div class="card-options-row">
+              <label for="menu-select-ai-diff" class="menu-label">Difficulty:</label>
+              <select id="menu-select-ai-diff" class="md3-select mini-select">
+                <option value="ARCHMAGE">Archmage (2000 Elo)</option>
+                <option value="ADEPT" selected>Battle Adept (1400 Elo)</option>
+                <option value="APPRENTICE">Novice (800 Elo)</option>
+              </select>
+            </div>
 
-      <div class="dock-center">
-        <!-- Time Control Selector for 3D Crystal Hourglasses -->
-        <div class="time-control-group" title="3D Physical Sand Timers on Altar">
-          <span class="material-symbols-outlined hourglass-icon">hourglass_top</span>
-          <select id="select-time-control" class="md3-select" aria-label="Altar Hourglass Mode">
-            <option value="UNLIMITED">Infinite Time</option>
-            <option value="BLITZ">Blitz (3 min)</option>
-            <option value="RAPID">Rapid (10 min)</option>
-          </select>
+            <button id="btn-mode-ai-play" class="md3-tonal-btn card-action-btn">
+              <span>Battle AI</span>
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+
+          <!-- Card 2: Arcane Spells Battle -->
+          <div class="menu-card" id="card-mode-arcane">
+            <div class="card-icon-glow cyan">
+              <span class="material-symbols-outlined">magic_button</span>
+            </div>
+            <h3 class="card-title">Arcane Spells Mode</h3>
+            <p class="card-desc">Classical chess infused with mystical mana. Cast Frost Glyph, Arcane Warp, and Resurrection.</p>
+            
+            <div class="spell-pills-preview">
+              <span class="preview-pill"><span class="material-symbols-outlined">ac_unit</span> Freeze</span>
+              <span class="preview-pill"><span class="material-symbols-outlined">cyclone</span> Warp</span>
+              <span class="preview-pill"><span class="material-symbols-outlined">auto_awesome</span> Revive</span>
+            </div>
+
+            <button id="btn-mode-arcane-play" class="md3-tonal-btn card-action-btn">
+              <span>Cast & Duel</span>
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+
+          <!-- Card 3: Speed Arena (Altar Hourglasses) -->
+          <div class="menu-card" id="card-mode-speed">
+            <div class="card-icon-glow amber">
+              <span class="material-symbols-outlined">hourglass_top</span>
+            </div>
+            <h3 class="card-title">Speed Arena (Hourglasses)</h3>
+            <p class="card-desc">Fast-paced duel with physical 3D crystal hourglasses draining sand live upon the altar step.</p>
+            
+            <div class="card-options-row">
+              <label for="menu-select-speed-time" class="menu-label">Sand Timer:</label>
+              <select id="menu-select-speed-time" class="md3-select mini-select">
+                <option value="BLITZ" selected>Blitz (3 min)</option>
+                <option value="RAPID">Rapid (10 min)</option>
+              </select>
+            </div>
+
+            <button id="btn-mode-speed-play" class="md3-tonal-btn card-action-btn">
+              <span>Start Timer</span>
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+
+          <!-- Card 4: Iconic Lore Puzzles -->
+          <div class="menu-card" id="card-mode-puzzles">
+            <div class="card-icon-glow emerald">
+              <span class="material-symbols-outlined">psychology_alt</span>
+            </div>
+            <h3 class="card-title">Iconic Lore Challenges</h3>
+            <p class="card-desc">Re-enact 4 legendary checkmate sequences from the Great Chamber and chess grandmaster history.</p>
+            
+            <div class="spell-pills-preview">
+              <span class="preview-pill">Opera House</span>
+              <span class="preview-pill">Knight Valor</span>
+              <span class="preview-pill">Greek Gift</span>
+            </div>
+
+            <button id="btn-mode-puzzles-browse" class="md3-tonal-btn card-action-btn">
+              <span>Browse Puzzles</span>
+              <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Showcase Demo Shatter Button -->
-        <button id="btn-demo-shatter" class="md3-tonal-btn pulse-glow" title="Demonstrate Shatter Physics">
-          <span class="material-symbols-outlined">flash_on</span>
-          <span>Demo Shatter</span>
+        <!-- Quick Links Secondary Bar -->
+        <div class="menu-quick-nav">
+          <button id="btn-menu-friend-link" class="nav-chip-btn" title="1-Click Friend Link (WebRTC)">
+            <span class="material-symbols-outlined">handshake</span>
+            <span>Friend Duel (P2P)</span>
+          </button>
+          <button id="btn-menu-codex" class="nav-chip-btn" title="The Grand Codex">
+            <span class="material-symbols-outlined">menu_book</span>
+            <span>Grand Codex</span>
+          </button>
+          <button id="btn-menu-settings" class="nav-chip-btn" title="Settings & Audio">
+            <span class="material-symbols-outlined">settings</span>
+            <span>Settings</span>
+          </button>
+          <button id="btn-menu-demo-shatter" class="nav-chip-btn" title="Showcase Shatter Physics">
+            <span class="material-symbols-outlined">flash_on</span>
+            <span>Demo Shatter</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================================
+         PAGE 2: IN-GAME BATTLE ARENA HUD
+         ======================================================== -->
+    <div id="page-game-arena" class="page-view hidden">
+      <!-- Top Arena Header Bar -->
+      <header id="arena-top-bar" class="md3-surface md3-glass">
+        <!-- Return to Menu Button -->
+        <button id="btn-return-menu" class="md3-icon-btn return-btn" title="Return to Main Sanctuary Menu">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span class="return-label">Menu</span>
         </button>
 
-        <!-- Audio Mute Button -->
-        <button id="btn-mute" class="md3-icon-btn" title="Toggle Arcane Sound">
-          <span id="mute-icon" class="material-symbols-outlined">volume_up</span>
-        </button>
+        <!-- Active Mode Pill -->
+        <div id="active-mode-pill" class="mode-indicator-pill">
+          <span id="active-mode-icon" class="material-symbols-outlined">swords</span>
+          <span id="active-mode-text">vs Archmage AI (Hard)</span>
+        </div>
 
-        <!-- Architecture Spec Button -->
-        <button id="btn-arch-spec" class="md3-icon-btn" title="Architectural Blueprint">
-          <span class="material-symbols-outlined">integration_instructions</span>
-        </button>
+        <!-- Center Match State Indicators -->
+        <div class="game-status-center">
+          <!-- Turn Indicator Chip -->
+          <div id="turn-chip" class="md3-chip turn-white">
+            <span class="turn-dot"></span>
+            <span id="turn-label">White's Turn</span>
+          </div>
+
+          <!-- Check / Alert Badge -->
+          <div id="status-badge" class="md3-badge status-normal">
+            <span class="material-symbols-outlined status-icon">shield</span>
+            <span id="status-text">In Play</span>
+          </div>
+
+          <!-- Archmage AI Deliberating Pill -->
+          <div id="ai-thinking-pill" class="md3-pill ai-pill hidden">
+            <span class="material-symbols-outlined ai-spin-glyph">auto_mode</span>
+            <span>Archmage Deliberating...</span>
+          </div>
+
+          <!-- Voice Command Live Status Pill -->
+          <div id="voice-pill" class="md3-pill hidden">
+            <span class="voice-wave-dot"></span>
+            <span id="voice-pill-text">Listening...</span>
+          </div>
+        </div>
+
+        <!-- Right Arena Tactical Tools Bar -->
+        <div class="arena-tactical-tools">
+          <!-- Arcane Hint ("Third Eye") Button -->
+          <button id="btn-hint" class="md3-icon-btn glow-gold" title="Arcane Sight: Reveal Recommended Best Move">
+            <span class="material-symbols-outlined">lightbulb</span>
+            <span class="btn-label">Hint</span>
+          </button>
+
+          <!-- Undo Move Button -->
+          <button id="btn-undo" class="md3-icon-btn" title="Undo Last Move">
+            <span class="material-symbols-outlined">undo</span>
+            <span class="btn-label">Undo</span>
+          </button>
+
+          <!-- Restart Match Button -->
+          <button id="btn-restart" class="md3-icon-btn" title="Restart Match from Initial Position">
+            <span class="material-symbols-outlined">refresh</span>
+            <span class="btn-label">Restart</span>
+          </button>
+
+          <!-- Resign / Surrender Button -->
+          <button id="btn-resign" class="md3-icon-btn" title="Concede Defeat">
+            <span class="material-symbols-outlined">flag</span>
+            <span class="btn-label">Resign</span>
+          </button>
+
+          <!-- Camera Preset Controls -->
+          <nav class="camera-controls-group" aria-label="Camera Presets">
+            <button id="cam-orbit" class="md3-icon-btn active" title="Free Orbit View">
+              <span class="material-symbols-outlined">explore</span>
+            </button>
+            <button id="cam-white" class="md3-icon-btn" title="White POV">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+            <button id="cam-black" class="md3-icon-btn" title="Black POV">
+              <span class="material-symbols-outlined">visibility_off</span>
+            </button>
+            <button id="cam-top" class="md3-icon-btn" title="Tactical Top-Down View">
+              <span class="material-symbols-outlined">grid_view</span>
+            </button>
+          </nav>
+
+          <!-- Voice Incantation Button -->
+          <button id="btn-voice" class="md3-icon-btn" title="Speak Moves Aloud (e.g. 'Knight to F3')">
+            <span class="material-symbols-outlined">mic</span>
+          </button>
+
+          <!-- Audio Mute Button -->
+          <button id="btn-mute" class="md3-icon-btn" title="Toggle Sound">
+            <span id="mute-icon" class="material-symbols-outlined">volume_up</span>
+          </button>
+
+          <!-- In-Game Settings Button -->
+          <button id="btn-settings" class="md3-icon-btn" title="Options & Settings">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Lore Puzzle Banner (Visible only when playing a Lore Challenge) -->
+      <aside id="puzzle-banner" class="md3-surface md3-glass hidden">
+        <div class="puzzle-banner-left">
+          <span class="material-symbols-outlined puzzle-icon">psychology_alt</span>
+          <div class="puzzle-banner-info">
+            <h3 id="puzzle-banner-title">The Immortal Queen Sacrifice</h3>
+            <p id="puzzle-banner-desc">White to move and deliver checkmate in 3 moves!</p>
+          </div>
+        </div>
+        <div class="puzzle-banner-actions">
+          <span id="puzzle-banner-step" class="puzzle-step-chip">Step 1 of 3</span>
+          <button id="btn-puzzle-hint" class="md3-tonal-btn mini-btn">
+            <span class="material-symbols-outlined">help</span>
+            <span>Clue</span>
+          </button>
+          <button id="btn-puzzle-retry" class="md3-icon-btn mini-btn" title="Reset Puzzle">
+            <span class="material-symbols-outlined">replay</span>
+          </button>
+          <button id="btn-puzzle-exit" class="md3-icon-btn mini-btn" title="Exit Puzzle">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Left Player Racks Stack -->
+      <div id="player-racks-container">
+        <!-- Opponent Player Card (Black / Top) -->
+        <aside id="black-player-card" class="player-card md3-surface md3-glass">
+          <div class="player-header">
+            <div class="player-avatar-wrap black-avatar">
+              <span class="material-symbols-outlined">smart_toy</span>
+            </div>
+            <div class="player-meta">
+              <span id="black-player-name" class="player-name">Archmage Voldis</span>
+              <span id="black-player-title" class="player-title">Grand Inquisitor • 2000 Elo</span>
+            </div>
+            <span id="black-material-badge" class="material-badge hidden">+3</span>
+          </div>
+          <!-- Captured White Pieces Tray -->
+          <div class="graveyard-tray">
+            <span class="tray-label">Captured:</span>
+            <div id="white-graveyard" class="graveyard-tokens"></div>
+          </div>
+        </aside>
+
+        <!-- Player Card (White / Bottom) -->
+        <aside id="white-player-card" class="player-card md3-surface md3-glass">
+          <div class="player-header">
+            <div class="player-avatar-wrap white-avatar">
+              <span class="material-symbols-outlined">person</span>
+            </div>
+            <div class="player-meta">
+              <span id="white-player-name" class="player-name">Battle Mage (You)</span>
+              <span id="white-player-title" class="player-title">Order of Light • 1500 Elo</span>
+            </div>
+            <span id="white-material-badge" class="material-badge hidden">+0</span>
+          </div>
+          <!-- Captured Black Pieces Tray -->
+          <div class="graveyard-tray">
+            <span class="tray-label">Captured:</span>
+            <div id="black-graveyard" class="graveyard-tokens"></div>
+          </div>
+        </aside>
       </div>
 
-      <div class="dock-right">
-        <!-- New Game MD3 FAB -->
-        <button id="btn-new-game" class="md3-fab" title="Begin New Match">
-          <span class="material-symbols-outlined">refresh</span>
-          <span>New Game</span>
-        </button>
-      </div>
-    </footer>
+      <!-- Right Floating Card: Move Chronicle -->
+      <aside id="history-card" class="md3-surface md3-glass">
+        <div class="card-header">
+          <div class="header-title-row">
+            <span class="material-symbols-outlined card-header-icon">history_edu</span>
+            <h2 class="card-title">Chronicle of Moves</h2>
+          </div>
+          <span id="move-count-chip" class="md3-subchip">0 moves</span>
+        </div>
+
+        <!-- Move Log List -->
+        <div id="move-log" class="move-log-scroll" tabindex="0" role="region" aria-label="Move History Log">
+          <div class="empty-log-hint">Awaiting opening incantation...</div>
+        </div>
+      </aside>
+
+      <!-- Arcane Spells Dock (Visible when Arcane Mode is ON) -->
+      <aside id="arcane-dock" class="md3-surface md3-glass hidden">
+        <div class="arcane-dock-header">
+          <div class="arcane-title-row">
+            <span class="material-symbols-outlined arcane-icon">magic_button</span>
+            <span class="arcane-title">ARCANE MANA</span>
+          </div>
+          <span id="mana-count" class="mana-badge">35 / 100 MP</span>
+        </div>
+
+        <!-- Glowing Mana Bar -->
+        <div class="mana-track">
+          <div id="mana-fill" class="mana-fill" style="width: 35%;"></div>
+        </div>
+
+        <!-- 3 Spell Incantations -->
+        <div class="spells-row">
+          <button id="spell-freeze" class="spell-btn" title="Freeze an enemy piece for 1 turn (Cost: 35 MP)">
+            <span class="material-symbols-outlined spell-glyph">ac_unit</span>
+            <span class="spell-name">Frost Glyph</span>
+            <span class="spell-cost">35 MP</span>
+          </button>
+
+          <button id="spell-warp" class="spell-btn" title="Warp your piece to any safe square (Cost: 40 MP)">
+            <span class="material-symbols-outlined spell-glyph">cyclone</span>
+            <span class="spell-name">Arcane Warp</span>
+            <span class="spell-cost">40 MP</span>
+          </button>
+
+          <button id="spell-revive" class="spell-btn" title="Resurrect a fallen piece from your graveyard (Cost: 65 MP)">
+            <span class="material-symbols-outlined spell-glyph">auto_awesome</span>
+            <span class="spell-name">Resurrect</span>
+            <span class="spell-cost">65 MP</span>
+          </button>
+        </div>
+      </aside>
+    </div>
   </div>
 
-  <!-- 1-Click Friend Link (WebRTC P2P) Modal -->
-  <div id="p2p-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="p2p-modal-title">
-    <div class="modal-card md3-surface md3-glass">
+
+  <!-- ========================================================
+       MODALS & DIALOGS
+       ======================================================== -->
+
+  <!-- 1. The Grand Codex & Spellbook Modal -->
+  <div id="codex-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="codex-modal-title">
+    <div class="modal-card md3-surface md3-glass wide-modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span class="material-symbols-outlined modal-icon">handshake</span>
-          <h2 id="p2p-modal-title">1-Click Friend Link (WebRTC Duel)</h2>
+          <span class="material-symbols-outlined modal-icon">auto_stories</span>
+          <h2 id="codex-modal-title">The Grand Codex of Wizard's Chess</h2>
         </div>
-        <button id="btn-close-p2p" class="md3-icon-btn" title="Close Dialog">
+        <button id="btn-close-codex" class="md3-icon-btn" title="Close Codex">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
-      <div class="modal-content">
-        <p class="modal-desc">Instant peer-to-peer multiplayer directly in your browser. Zero backend server required!</p>
+      <!-- Codex Tabs Navigation -->
+      <div class="codex-tabs-bar">
+        <button class="codex-tab active" data-tab="tab-combat">Living Pieces</button>
+        <button class="codex-tab" data-tab="tab-spells">Arcane Spells</button>
+        <button class="codex-tab" data-tab="tab-voice">Voice Incantations</button>
+        <button class="codex-tab" data-tab="tab-rules">Rules & Lore</button>
+      </div>
 
-        <!-- Host Chamber Box -->
-        <div class="p2p-card-section">
-          <h3>Option 1: Host a Duel & Share Link</h3>
-          <p>Create a chamber and send the instant 1-click link to your friend:</p>
-          <div class="p2p-link-row">
-            <input id="p2p-share-link" type="text" readonly placeholder="Click 'Generate Link' to begin..." />
-            <button id="btn-copy-p2p-link" class="md3-filled-btn">Copy Link</button>
+      <div class="modal-content codex-content">
+        <!-- Tab 1: Living Pieces Combat -->
+        <div id="tab-combat" class="codex-tab-pane active">
+          <div class="codex-grid">
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">fort</span>
+              <h3>Rook: Seismic-Slam</h3>
+              <p>Ascends 5.5m skyward, charges gravitational kinetic mass, and slams down with earth-shattering seismic downforce, fracturing the flagstone.</p>
+            </div>
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">wb_incandescent</span>
+              <h3>Bishop: Celestial Beam</h3>
+              <p>Hovers in solar casting stance, rotates glowing celestial rings, and fires a high-energy laser beam vaporizing the victim into radiant shards.</p>
+            </div>
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">pets</span>
+              <h3>Knight: Warhorse Stomp</h3>
+              <p>Rears up on haunches, leaps in a steep parabolic arc over obstacles, and double-stomps down with bone-crushing kinetic shockwaves.</p>
+            </div>
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">crown</span>
+              <h3>Queen: Telekinetic Crush</h3>
+              <p>Levitates the enemy helplessly into mid-air, compresses them in a violent swirling violet vortex ring, and implodes them into 30 shards.</p>
+            </div>
           </div>
-          <button id="btn-host-p2p" class="md3-tonal-btn">Generate Room Code</button>
         </div>
 
-        <!-- Join Chamber Box -->
-        <div class="p2p-card-section">
-          <h3>Option 2: Join an Existing Chamber</h3>
-          <p>Enter the Room Code provided by your friend:</p>
-          <div class="p2p-link-row">
-            <input id="p2p-join-input" type="text" placeholder="e.g. wiz-abc123" />
-            <button id="btn-join-p2p" class="md3-filled-btn">Join Duel</button>
+        <!-- Tab 2: Arcane Spells -->
+        <div id="tab-spells" class="codex-tab-pane">
+          <div class="codex-grid">
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">ac_unit</span>
+              <h3>Frost Glyph (35 MP)</h3>
+              <p>Target any enemy piece to encase them in solid crystal ice. The frozen piece is completely immobilized and cannot move on the opponent's next turn.</p>
+            </div>
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">cyclone</span>
+              <h3>Arcane Warp (40 MP)</h3>
+              <p>Teleport your active piece across the battlefield to any safe square on your side of the board with a burst of violet lightning.</p>
+            </div>
+            <div class="codex-card">
+              <span class="material-symbols-outlined codex-piece-icon">auto_awesome</span>
+              <h3>Resurrection (65 MP)</h3>
+              <p>Resurrect a fallen piece from your graveyard back onto an open square on your home rank with an arcane summoning portal.</p>
+            </div>
           </div>
         </div>
 
-        <div id="p2p-status-box" class="p2p-status-box">Status: Ready to connect</div>
+        <!-- Tab 3: Voice Incantations -->
+        <div id="tab-voice" class="codex-tab-pane">
+          <div class="codex-guide-box">
+            <h3>Spoken Chess Commands (Web Speech API)</h3>
+            <p>Click the <strong>Voice</strong> button and speak your moves aloud:</p>
+            <ul class="voice-command-list">
+              <li><strong>Piece Moves:</strong> <code>"Knight to F3"</code>, <code>"Pawn to E4"</code>, <code>"Bishop to C4"</code></li>
+              <li><strong>Coordinate Moves:</strong> <code>"E2 to E4"</code>, <code>"D7 to D5"</code></li>
+              <li><strong>Captures:</strong> <code>"Queen takes D4"</code>, <code>"Knight takes E5"</code></li>
+              <li><strong>Castling:</strong> <code>"Castle kingside"</code>, <code>"Castle queenside"</code></li>
+              <li><strong>Spell Casting:</strong> <code>"Freeze E4"</code>, <code>"Revive piece"</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 4: Rules & Lore -->
+        <div id="tab-rules" class="codex-tab-pane">
+          <div class="codex-guide-box">
+            <h3>The Sacred Code of the Cathedral Altar</h3>
+            <p>Wizard's Chess follows classical tournament chess rules with arcane extensions:</p>
+            <ul class="rules-list">
+              <li><strong>Check & Checkmate:</strong> When a King is in Check, it pulses with a crimson heartbeat aura and thunder flashes through the stained-glass Rose window.</li>
+              <li><strong>Blunder Premonition:</strong> Pieces tremble nervously with high-frequency micro-jitters when placed into danger or about to be sacrificed.</li>
+              <li><strong>Battlefield Scars:</strong> Permanent floor cracks, scorch marks, and 3D rubble stay on squares where pieces died.</li>
+              <li><strong>Physical Sand Timers:</strong> In Blitz (3m) and Rapid (10m) modes, physical 3D crystal hourglasses drain sand continuously on the altar.</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Iconic Lore Puzzles Modal -->
+  <!-- 2. Iconic Lore Challenges Modal -->
   <div id="puzzles-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="puzzles-modal-title">
     <div class="modal-card md3-surface md3-glass wide-modal">
       <div class="modal-header">
         <div class="modal-title-wrap">
           <span class="material-symbols-outlined modal-icon">auto_stories</span>
-          <h2 id="puzzles-modal-title">Iconic Lore Challenges (3-Move Checkmates)</h2>
+          <h2 id="puzzles-modal-title">Iconic Lore Challenges (Checkmate Puzzles)</h2>
         </div>
         <button id="btn-close-puzzles" class="md3-icon-btn" title="Close Dialog">
           <span class="material-symbols-outlined">close</span>
@@ -312,67 +542,153 @@
     </div>
   </div>
 
-  <!-- Floating Arcane Toast Notification -->
-  <div id="arcane-toast" class="arcane-toast hidden">
-    <span class="material-symbols-outlined toast-icon">bolt</span>
-    <span id="toast-message">The incantation is cast!</span>
-  </div>
-
-  <!-- Architecture Spec Modal -->
-  <div id="spec-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <!-- 3. 1-Click Friend Link (WebRTC P2P) Modal -->
+  <div id="p2p-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="p2p-modal-title">
     <div class="modal-card md3-surface md3-glass">
       <div class="modal-header">
         <div class="modal-title-wrap">
-          <span class="material-symbols-outlined modal-icon">architecture</span>
-          <h2 id="modal-title">Wizard's Chess 3D Architectural Blueprint</h2>
+          <span class="material-symbols-outlined modal-icon">handshake</span>
+          <h2 id="p2p-modal-title">1-Click Friend Link (WebRTC Duel)</h2>
         </div>
-        <button id="btn-close-modal" class="md3-icon-btn" title="Close Blueprint">
+        <button id="btn-close-p2p" class="md3-icon-btn" title="Close Dialog">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
 
       <div class="modal-content">
-        <section class="spec-section">
-          <h3>1. Voice Commands (Web Speech API)</h3>
-          <p>Speak moves aloud ("Knight to F3", "Pawn to E4", "Castle kingside", "Freeze D4") with real-time phonetic parsing matched against legal chess.js targets.</p>
-        </section>
+        <p class="modal-desc">Instant peer-to-peer multiplayer directly in your browser. Zero backend server required!</p>
 
-        <section class="spec-section">
-          <h3>2. Unique Piece Kill Choreographies</h3>
-          <ul>
-            <li><strong>Rooks:</strong> Seismic-Slam (skyward ascent, gravitational tremor, downforce crater impact).</li>
-            <li><strong>Bishops:</strong> Celestial Light Beam (arcane energy charging, solar laser incinerating victim).</li>
-            <li><strong>Knights:</strong> Warhorse Hoof Stomp (rears up, violent parabolic leap, shockwave stomp).</li>
-            <li><strong>Queens:</strong> Telekinetic Arcane Crush (floats victim in mid-air, compresses in swirling vortex, implodes into shards).</li>
-          </ul>
-        </section>
+        <!-- Host Chamber Box -->
+        <div class="p2p-card-section">
+          <h3>Option 1: Host a Duel & Share Link</h3>
+          <p>Create a chamber and send the instant 1-click link to your friend:</p>
+          <div class="p2p-link-row">
+            <input id="p2p-share-link" type="text" readonly placeholder="Click 'Generate Link' to begin..." />
+            <button id="btn-copy-p2p-link" class="md3-filled-btn">Copy Link</button>
+          </div>
+          <button id="btn-host-p2p" class="md3-tonal-btn">Generate Room Code</button>
+        </div>
 
-        <section class="spec-section">
-          <h3>3. Living Piece Reactions & Visual Upgrades</h3>
-          <ul>
-            <li><strong>Blunder Tremble:</strong> Pieces tremble nervously when placed in jeopardy or when about to make a sacrifice.</li>
-            <li><strong>King Crimson Glow:</strong> King pulses with a red heartbeat aura when in Check.</li>
-            <li><strong>Cinematic Action Cam:</strong> Close-up slow-motion swoop during high-value captures.</li>
-            <li><strong>Battlefield Scars:</strong> Permanent floor cracks, scorch marks, and 3D stone rubble left on death squares.</li>
-            <li><strong>Reactive Weather:</strong> Stained-glass Rose window lightning strikes and rolling thunder audio during check.</li>
-          </ul>
-        </section>
+        <!-- Join Chamber Box -->
+        <div class="p2p-card-section">
+          <h3>Option 2: Join an Existing Chamber</h3>
+          <p>Enter the Room Code provided by your friend:</p>
+          <div class="p2p-link-row">
+            <input id="p2p-join-input" type="text" placeholder="e.g. wiz-abc123" />
+            <button id="btn-join-p2p" class="md3-filled-btn">Join Duel</button>
+          </div>
+        </div>
 
-        <section class="spec-section">
-          <h3>4. Arcane Mode & 3D Crystal Hourglasses</h3>
-          <p>Floating physical sand timers for Blitz (3m) and Rapid (10m) modes. Optional Arcane Mode where captures award mana to cast 1-turn spells (Freeze, Revive, Warp).</p>
-        </section>
+        <div id="p2p-status-box" class="p2p-status-box">Status: Ready to connect</div>
+      </div>
+    </div>
+  </div>
 
-        <section class="spec-section">
-          <h3>5. 1-Click Friend Link (WebRTC P2P) & HDR UnrealBloom</h3>
-          <p>Instant peer-to-peer multiplayer via WebRTC room codes with zero backend servers. Full Three.js UnrealBloomPass HDR post-processing for radiant arcane glow.</p>
-        </section>
+  <!-- 4. Cathedral Settings & Options Modal -->
+  <div id="settings-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-card md3-surface md3-glass">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="material-symbols-outlined modal-icon">settings</span>
+          <h2 id="settings-modal-title">Cathedral Settings & Aesthetics</h2>
+        </div>
+        <button id="btn-close-settings" class="md3-icon-btn" title="Close Settings">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="modal-content settings-content">
+        <!-- Audio Volume Group -->
+        <div class="settings-group">
+          <h3>Audio & Spatial Ambience</h3>
+          <div class="setting-row">
+            <label for="settings-volume-slider">Master Volume</label>
+            <input id="settings-volume-slider" type="range" min="0" max="100" value="80" class="md3-slider" />
+          </div>
+          <div class="setting-row">
+            <span>Cathedral Reverb & Spatial Audio</span>
+            <span class="badge-status-on">Active</span>
+          </div>
+        </div>
+
+        <!-- Graphics & Aesthetics Group -->
+        <div class="settings-group">
+          <h3>Visual Splendor & Bloom</h3>
+          <div class="setting-row">
+            <label for="toggle-bloom">HDR UnrealBloom Glow</label>
+            <input id="toggle-bloom" type="checkbox" checked class="md3-checkbox" />
+          </div>
+          <div class="setting-row">
+            <label for="toggle-action-cam">Cinematic Action Camera</label>
+            <input id="toggle-action-cam" type="checkbox" checked class="md3-checkbox" />
+          </div>
+          <div class="setting-row">
+            <label for="toggle-tremble">Blunder Tremble Premonition</label>
+            <input id="toggle-tremble" type="checkbox" checked class="md3-checkbox" />
+          </div>
+        </div>
       </div>
 
       <div class="modal-footer">
-        <button id="btn-modal-dismiss" class="md3-filled-btn">Close Blueprint</button>
+        <button id="btn-save-settings" class="md3-filled-btn">Save & Close</button>
       </div>
     </div>
+  </div>
+
+  <!-- 5. Pawn Promotion Selection Modal -->
+  <div id="promotion-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="promotion-modal-title">
+    <div class="modal-card md3-surface md3-glass promo-modal">
+      <div class="modal-header">
+        <h2 id="promotion-modal-title" class="promo-title">Choose Royal Transmutation</h2>
+      </div>
+      <p class="promo-sub">Your Pawn has breached the final rank. Choose its promoted form:</p>
+
+      <div class="promotion-choices">
+        <button class="promo-btn" data-promo="q">
+          <span class="promo-rune">♕</span>
+          <span class="promo-label">Queen</span>
+        </button>
+        <button class="promo-btn" data-promo="n">
+          <span class="promo-rune">♘</span>
+          <span class="promo-label">Knight</span>
+        </button>
+        <button class="promo-btn" data-promo="r">
+          <span class="promo-rune">♖</span>
+          <span class="promo-label">Rook</span>
+        </button>
+        <button class="promo-btn" data-promo="b">
+          <span class="promo-rune">♗</span>
+          <span class="promo-label">Bishop</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Epic Game Over Victory / Defeat Announcement Modal -->
+  <div id="game-over-modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+    <div class="modal-card md3-surface md3-glass victory-card">
+      <div class="victory-header">
+        <div id="game-over-icon" class="material-symbols-outlined victory-crest">military_tech</div>
+        <h2 id="game-over-title" class="victory-headline">VICTORY ACHIEVED</h2>
+        <p id="game-over-subtitle" class="victory-sub">The White Archmage Prevails!</p>
+      </div>
+
+      <div class="victory-stats-box">
+        <div id="game-over-stats" class="victory-stats-text">Delivered in 28 moves • 6 enemy pieces shattered</div>
+      </div>
+
+      <div class="victory-actions">
+        <button id="btn-game-over-rematch" class="md3-filled-btn pulse-glow">Begin Rematch</button>
+        <button id="btn-game-over-inspect" class="md3-tonal-btn">Inspect Battlefield</button>
+        <button id="btn-game-over-menu" class="md3-tonal-btn">Main Sanctuary</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Floating Arcane Toast Notification -->
+  <div id="arcane-toast" class="arcane-toast hidden">
+    <span class="material-symbols-outlined toast-icon">bolt</span>
+    <span id="toast-message">The incantation is cast!</span>
   </div>
 
   <script type="module" src="/src/main.ts"></script>

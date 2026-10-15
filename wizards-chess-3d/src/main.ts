@@ -59,6 +59,7 @@ class WizardsChessApp {
     // 7. Piece Group
     this.pieceGroup = new THREE.Group();
     this.sceneManager.scene.add(this.pieceGroup);
+    this.boardGrid.setPieceGroup(this.pieceGroup);
 
     // 8. Animation Choreographer & Audio Synthesizer
     this.choreographer = new CombatChoreographer(this.sceneManager.scene);
@@ -84,6 +85,13 @@ class WizardsChessApp {
 
     // Game Reset Event
     eventBus.on('GAME_RESET', () => {
+      this.clearAllPieces();
+      this.shatterEngine.clearAll();
+      this.spawnInitialBoard();
+    });
+
+    // Board Loaded (FEN load / Puzzle / Reset)
+    eventBus.on('BOARD_LOADED', () => {
       this.clearAllPieces();
       this.shatterEngine.clearAll();
       this.spawnInitialBoard();
@@ -125,6 +133,19 @@ class WizardsChessApp {
       if (piece) {
         piece.setFrozen(false);
       }
+    });
+
+    // Tactile Piece Levitation on Selection
+    eventBus.on('PIECE_SELECTED', ({ square }) => {
+      this.pieceMap.forEach((piece, sq) => {
+        piece.setSelected(sq === square);
+      });
+    });
+
+    eventBus.on('PIECE_DESELECTED', () => {
+      this.pieceMap.forEach((piece) => {
+        piece.setSelected(false);
+      });
     });
 
     // Arcane Mode: Revive Spell

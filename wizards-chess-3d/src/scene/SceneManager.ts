@@ -103,6 +103,17 @@ export class SceneManager {
     eventBus.on('CAMERA_SHAKE_TRIGGERED', ({ intensity, duration }) => {
       this.triggerCameraShake(intensity, duration);
     });
+
+    eventBus.on('VIEW_CHANGED', (view) => {
+      if (view === 'MENU') {
+        this.controls.autoRotate = true;
+        this.controls.autoRotateSpeed = 0.55;
+        this.transitionToPreset('ORBIT');
+      } else {
+        this.controls.autoRotate = false;
+        this.transitionToPreset('WHITE_POV');
+      }
+    });
   }
 
   public togglePostProcessing(): boolean {
